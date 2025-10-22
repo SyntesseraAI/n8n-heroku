@@ -11,6 +11,7 @@ npm install -g @anthropic-ai/claude-code
 (
   mkdir -p /home/node/packages/cli/.n8n/nodes
   cd /home/node/packages/cli/.n8n/nodes
+  npm install @anthropic-ai/claude-code
   npm install @holtweb/n8n-nodes-claudecode
 )
 
