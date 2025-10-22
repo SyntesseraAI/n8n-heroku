@@ -10,6 +10,8 @@ npm install -g @anthropic-ai/claude-code
 # surface auth configuration for the claude-code CLI if provided
 if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   export CLAUDE_CODE_OAUTH_TOKEN
+  mkdir -p ~/.claude
+  echo CLAUDE_CODE_OAUTH_TOKEN > ~/.claude/credentials.json
   echo "CLAUDE_CODE_OAUTH_TOKEN detected; claude-code CLI authentication ready."
 else
   echo "CLAUDE_CODE_OAUTH_TOKEN not set; claude-code CLI will require authentication."
