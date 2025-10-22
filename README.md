@@ -8,6 +8,8 @@ This is a [Heroku](https://heroku.com/)-focused container implementation of [n8n
 
 Use the **Deploy to Heroku** button above to launch n8n on Heroku. When deploying, make sure to check all configuration options and adjust them to your needs. It's especially important to set `N8N_ENCRYPTION_KEY` to a random secure value.
 
+If you plan to use the `@anthropic-ai/claude-code` CLI in your automation flows, add a `CLAUDE_CODE_OAUTH_TOKEN` config var during deployment so the container can authenticate the CLI on startup.
+
 Refer to the [Heroku n8n tutorial](https://docs.n8n.io/hosting/server-setups/heroku/) for more information.
 
 If you have questions after trying the tutorials, check out the [forums](https://community.n8n.io/).
