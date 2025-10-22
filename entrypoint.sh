@@ -11,11 +11,10 @@ npm install -g @anthropic-ai/claude-code
 if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   export CLAUDE_CODE_OAUTH_TOKEN
   echo "CLAUDE_CODE_OAUTH_TOKEN detected; claude-code CLI authentication ready."
+  claude -p
 else
   echo "CLAUDE_CODE_OAUTH_TOKEN not set; claude-code CLI will require authentication."
 fi
-
-
 
 # regex function
 parse_url() {
