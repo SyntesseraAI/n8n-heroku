@@ -7,14 +7,6 @@ if [ -z ${PORT+x} ]; then echo "PORT variable not defined, leaving N8N to defaul
 echo "Installing @anthropic-ai/claude-code globally..."
 npm install -g @anthropic-ai/claude-code
 
-# install local claude code nodes for n8n (directory already created by base image)
-(
-  mkdir -p /home/node/packages/cli/.n8n/nodes
-  cd /home/node/packages/cli/.n8n/nodes
-  npm install @anthropic-ai/claude-code
-  npm install @holtweb/n8n-nodes-claudecode
-)
-
 # surface auth configuration for the claude-code CLI if provided
 if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   export CLAUDE_CODE_OAUTH_TOKEN
