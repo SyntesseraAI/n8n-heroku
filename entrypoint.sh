@@ -9,7 +9,8 @@ npm install -g @anthropic-ai/claude-code
 
 # install local claude code nodes for n8n (directory already created by base image)
 (
-  cd ~/.n8n/nodes || exit 1
+  mkdir -p /home/node/packages/cli/.n8n/nodes
+  cd /home/node/packages/cli/.n8n/nodes
   npm install @holtweb/n8n-nodes-claudecode
 )
 
