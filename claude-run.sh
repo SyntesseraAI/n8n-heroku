@@ -2,11 +2,12 @@
 log_user 0
 set timeout 300
 
-# Get the command-line argument (the prompt)
-set prompt [lindex $argv 0]
+# Get the command-line arguments (model and prompt)
+set model [lindex $argv 0]
+set prompt [lindex $argv 1]
 
 # Launch Claude with the prompt
-spawn claude -p "$prompt" --permission-mode "bypassPermissions"
+spawn claude --allowedTools --model $model "mcp__github" -p "$prompt"
 
 # Capture and print only the output
 expect {
