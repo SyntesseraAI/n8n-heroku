@@ -6,7 +6,7 @@ set timeout 300
 set prompt [lindex $argv 0]
 
 # Launch Claude with the prompt
-spawn claude -p "$prompt"
+spawn claude -p "$prompt" --permission-mode "bypassPermissions"
 
 # Capture and print only the output
 expect {
