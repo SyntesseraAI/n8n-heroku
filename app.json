@@ -31,6 +31,10 @@
     "CLAUDE_CODE_OAUTH_TOKEN": {
       "description": "OAuth token for the @anthropic-ai/claude-code CLI. Leave empty if you plan to authenticate later.",
       "required": false
+    },
+    "GITHUB_TOKEN": {
+      "description": "GitHub personal access token for accessing GitHub API and repositories.",
+      "required": false
     }
   },
   "addons": [
