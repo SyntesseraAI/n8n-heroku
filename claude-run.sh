@@ -1,6 +1,6 @@
 #!/usr/bin/expect -f
 log_user 0
-set timeout 300
+set timeout 3600
 
 # Get the command-line arguments (model and prompt)
 set model [lindex $argv 0]
