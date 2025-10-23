@@ -10,10 +10,6 @@ ENTRYPOINT []
 COPY ./entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 
-# Copy the generic claude-run script
-COPY ./claude-run.sh /home/node/packages/cli/claude-run.sh
-RUN chmod +x /home/node/packages/cli/claude-run.sh
-
 # Copy the sonnet expect script
 COPY ./sonnet.sh /home/node/packages/cli/sonnet.sh
 RUN chmod +x /home/node/packages/cli/sonnet.sh
