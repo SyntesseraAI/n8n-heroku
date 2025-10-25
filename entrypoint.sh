@@ -12,6 +12,9 @@ if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   export CLAUDE_CODE_OAUTH_TOKEN
   echo "CLAUDE_CODE_OAUTH_TOKEN detected; claude-code CLI authentication ready."
   claude mcp add --transport http github https://api.githubcopilot.com/mcp -H "Authorization: Bearer $GITHUB_TOKEN"
+  claude mcp add --transport http mermaidchart "https://mcp.mermaidchart.com/mcp"
+  claude mcp add --transport stdio codacy -- npx -y @codacy/codacy-mcp@latest
+  claude mcp add --transport stdio context7 -- npx -y context7-mcp-server@latest
   claude -p "Hello Claude"
 else
   echo "CLAUDE_CODE_OAUTH_TOKEN not set; claude-code CLI will require authentication."
