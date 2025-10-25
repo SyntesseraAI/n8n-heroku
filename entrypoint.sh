@@ -15,7 +15,7 @@ if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   claude mcp add --transport http mermaidchart "https://mcp.mermaidchart.com/mcp"
   claude mcp add --transport stdio codacy -- npx -y @codacy/codacy-mcp@latest
   claude mcp add --transport stdio context7 -- npx -y context7-mcp-server@latest
-  claude -p "Hello Claude"
+  claude -p "Hello Claude, describe your MCP servers"
 else
   echo "CLAUDE_CODE_OAUTH_TOKEN not set; claude-code CLI will require authentication."
 fi
