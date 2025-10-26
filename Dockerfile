@@ -32,10 +32,7 @@ COPY ./opusplan.sh /home/node/packages/cli/opusplan.sh
 RUN chmod +x /home/node/packages/cli/opusplan.sh
 
 # Copy the Cloud Run launcher script
-COPY ./launch-cloudrun.sh /usr/local/bin/launch-cloudrun
-RUN chmod +x /usr/local/bin/launch-cloudrun
-
-# Copy the cloudrun directory for building Cloud Run images
-COPY ./cloudrun /home/node/cloudrun
+COPY ./launch-cloudrun.sh /home/node/packages/cli/launch-cloudrun
+RUN chmod +x /home/node/packages/cli/launch-cloudrun
 
 CMD ["/entrypoint.sh"]

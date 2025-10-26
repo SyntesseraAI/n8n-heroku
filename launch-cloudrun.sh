@@ -26,7 +26,6 @@ Options:
   -P, --project PROJECT_ID      GCP Project ID (default: \$GCP_PROJECT_ID)
   -r, --region REGION           GCP Region (default: us-central1)
   -n, --name SERVICE_NAME       Service name (default: claude-code-runner)
-  -b, --build                   Build and push Docker image before running
   -h, --help                    Show this help message
 
 Environment Variables:
@@ -40,12 +39,11 @@ Environment Variables:
   CLOUDRUN_MAX_RETRIES          Max retries (default: 0)
 
 Example:
-  ./launch-cloudrun.sh -p "Create a new feature for user authentication" -b
+  ./launch-cloudrun.sh -p "Create a new feature for user authentication"
 EOF
 }
 
 # Parse command line arguments
-BUILD_IMAGE=false
 PROMPT=""
 
 while [[ $# -gt 0 ]]; do
@@ -66,10 +64,6 @@ while [[ $# -gt 0 ]]; do
       SERVICE_NAME="$2"
       IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
       shift 2
-      ;;
-    -b|--build)
-      BUILD_IMAGE=true
-      shift
       ;;
     -h|--help)
       show_help
@@ -113,16 +107,6 @@ echo "CPU: $CPU vCPU"
 echo "Timeout: $TIMEOUT"
 echo "Max Retries: $MAX_RETRIES"
 echo ""
-
-# Build and push image if requested
-if [ "$BUILD_IMAGE" = true ]; then
-  echo "=== Building Docker Image ==="
-  docker build -t "$IMAGE_NAME" ./cloudrun/
-
-  echo "=== Pushing Image to GCR ==="
-  docker push "$IMAGE_NAME"
-  echo ""
-fi
 
 # Create and execute Cloud Run job
 echo "=== Launching Cloud Run Job ==="
