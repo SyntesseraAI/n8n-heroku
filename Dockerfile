@@ -40,9 +40,9 @@ COPY ./nodes /tmp/custom-nodes
 WORKDIR /tmp/custom-nodes
 RUN npm install --include=dev && \
     npm run build && \
-    mkdir -p /home/node/.n8n/custom && \
-    cp -r dist/* /home/node/.n8n/custom/ && \
-    chown -R node:node /home/node/.n8n
+    mkdir -p /home/node/packages/cli/.n8n/custom && \
+    cp -r /tmp/custom-nodes /home/node/packages/cli/.n8n/custom/n8n-nodes-claude-code && \
+    chown -R node:node /home/node/packages/cli/.n8n
 
 # Install Claude Code CLI globally
 RUN npm install -g @anthropic-ai/claude-code
