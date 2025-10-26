@@ -62,9 +62,9 @@ echo "  Region: $GCP_REGION"
 echo "  Service Name: $SERVICE_NAME"
 echo ""
 
-read -p "Continue with these settings? (y/n) " -n 1 -r
+read -p "Continue with these settings? [Y/n] " -r
 echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+if [[ $REPLY =~ ^[Nn]$ ]]; then
   echo "Setup cancelled."
   exit 1
 fi
@@ -142,9 +142,9 @@ echo -e "${YELLOW}Step 5: Creating and downloading service account key...${NC}"
 KEY_FILE="${KEY_FILE:-gcp-key.json}"
 if [ -f "$KEY_FILE" ]; then
   echo -e "${YELLOW}Warning: $KEY_FILE already exists.${NC}"
-  read -p "Overwrite? (y/n) " -n 1 -r
+  read -p "Overwrite? [Y/n] " -r
   echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  if [[ $REPLY =~ ^[Nn]$ ]]; then
     echo "Skipping key creation."
   else
     gcloud iam service-accounts keys create "$KEY_FILE" \

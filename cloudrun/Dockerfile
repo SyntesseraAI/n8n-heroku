@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Install bash (no longer need expect - Claude Code runs natively with OAuth)
 RUN apk add --no-cache bash

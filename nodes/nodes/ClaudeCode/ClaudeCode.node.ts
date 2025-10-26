@@ -8,6 +8,69 @@ import {
 
 import { spawn } from 'child_process';
 
+// Helper function to execute Claude Code
+function executeClaudeCode(
+	args: string[],
+	oauthToken: string,
+	timeout: number,
+	workingDirectory: string,
+): Promise<string> {
+	return new Promise((resolve, reject) => {
+		let output = '';
+		let errorOutput = '';
+
+		// Set up environment with OAuth token
+		const env = {
+			...process.env,
+			CLAUDE_CODE_OAUTH_TOKEN: oauthToken,
+		};
+
+		// Spawn the claude process
+		const childProcess = spawn('claude', args, {
+			env,
+			cwd: workingDirectory,
+			shell: true,
+		});
+
+		// Set timeout
+		const timeoutId = setTimeout(() => {
+			childProcess.kill();
+			reject(new Error(`Claude Code execution timed out after ${timeout / 1000} seconds`));
+		}, timeout);
+
+		// Capture stdout
+		childProcess.stdout.on('data', (data: Buffer) => {
+			output += data.toString();
+		});
+
+		// Capture stderr
+		childProcess.stderr.on('data', (data: Buffer) => {
+			errorOutput += data.toString();
+		});
+
+		// Handle process exit
+		childProcess.on('close', (code: number | null) => {
+			clearTimeout(timeoutId);
+
+			if (code === 0) {
+				resolve(output);
+			} else {
+				reject(
+					new Error(
+						`Claude Code exited with code ${code}. Error: ${errorOutput || 'No error output'}`,
+					),
+				);
+			}
+		});
+
+		// Handle errors
+		childProcess.on('error', (error: Error) => {
+			clearTimeout(timeoutId);
+			reject(new Error(`Failed to execute Claude Code: ${error.message}`));
+		});
+	});
+}
+
 export class ClaudeCode implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Claude Code',
@@ -153,7 +216,7 @@ export class ClaudeCode implements INodeType {
 				args.push('-p', prompt);
 
 				// Execute Claude Code
-				const output = await this.executeClaudeCode(
+				const output = await executeClaudeCode(
 					args,
 					oauthToken,
 					timeout * 1000,
@@ -173,7 +236,7 @@ export class ClaudeCode implements INodeType {
 				if (this.continueOnFail()) {
 					returnData.push({
 						json: {
-							error: error.message,
+							error: error instanceof Error ? error.message : String(error),
 							success: false,
 						},
 						pairedItem: i,
@@ -185,67 +248,5 @@ export class ClaudeCode implements INodeType {
 		}
 
 		return [returnData];
-	}
-
-	private executeClaudeCode(
-		args: string[],
-		oauthToken: string,
-		timeout: number,
-		workingDirectory: string,
-	): Promise<string> {
-		return new Promise((resolve, reject) => {
-			let output = '';
-			let errorOutput = '';
-
-			// Set up environment with OAuth token
-			const env = {
-				...process.env,
-				CLAUDE_CODE_OAUTH_TOKEN: oauthToken,
-			};
-
-			// Spawn the claude process
-			const childProcess = spawn('claude', args, {
-				env,
-				cwd: workingDirectory,
-				shell: true,
-			});
-
-			// Set timeout
-			const timeoutId = setTimeout(() => {
-				childProcess.kill();
-				reject(new Error(`Claude Code execution timed out after ${timeout / 1000} seconds`));
-			}, timeout);
-
-			// Capture stdout
-			childProcess.stdout.on('data', (data) => {
-				output += data.toString();
-			});
-
-			// Capture stderr
-			childProcess.stderr.on('data', (data) => {
-				errorOutput += data.toString();
-			});
-
-			// Handle process exit
-			childProcess.on('close', (code) => {
-				clearTimeout(timeoutId);
-
-				if (code === 0) {
-					resolve(output);
-				} else {
-					reject(
-						new Error(
-							`Claude Code exited with code ${code}. Error: ${errorOutput || 'No error output'}`,
-						),
-					);
-				}
-			});
-
-			// Handle errors
-			childProcess.on('error', (error) => {
-				clearTimeout(timeoutId);
-				reject(new Error(`Failed to execute Claude Code: ${error.message}`));
-			});
-		});
 	}
 }

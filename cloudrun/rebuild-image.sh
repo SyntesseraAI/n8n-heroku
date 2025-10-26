@@ -42,9 +42,9 @@ echo "  Service Name: $SERVICE_NAME"
 echo "  Image: $IMAGE_NAME"
 echo ""
 
-read -p "Continue with these settings? (y/n) " -n 1 -r
+read -p "Continue with these settings? [Y/n] " -r
 echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+if [[ $REPLY =~ ^[Nn]$ ]]; then
   echo "Rebuild cancelled."
   exit 1
 fi
