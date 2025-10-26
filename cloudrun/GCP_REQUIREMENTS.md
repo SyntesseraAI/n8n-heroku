@@ -148,8 +148,7 @@ gcloud projects add-iam-policy-binding {PROJECT_ID} \
 2. Image includes:
    - Node.js 18
    - Claude Code CLI (`@anthropic-ai/claude-code`)
-   - expect (for running opusplan.sh)
-   - Your opusplan.sh script
+   - Bash (Claude Code runs natively with OAuth, no expect wrapper needed)
    - All MCP server configurations
 3. Image is pushed to `gcr.io/{PROJECT}/claude-code-runner`
 4. Cloud Run jobs pull this image when they execute
@@ -176,7 +175,6 @@ docker push gcr.io/{PROJECT}/claude-code-runner
 **When to Rebuild:**
 - After changing `cloudrun/Dockerfile`
 - After modifying `cloudrun/startup.sh`
-- After updating `cloudrun/opusplan.sh`
 - To update Claude Code CLI version
 
 ```bash
@@ -245,10 +243,9 @@ heroku config:set GITHUB_TOKEN="your-github-token"
 │  │  │ Container: gcr.io/.../claude-runner │           │ │
 │  │  │                                      │           │ │
 │  │  │  1. startup.sh runs                 │           │ │
-│  │  │  2. Installs Claude Code CLI        │           │ │
-│  │  │  3. Configures MCP servers          │           │ │
-│  │  │  4. Runs opusplan.sh with PROMPT    │           │ │
-│  │  │  5. Returns output to logs          │           │ │
+│  │  │  2. Configures MCP servers          │           │ │
+│  │  │  3. Runs Claude Code with PROMPT    │           │ │
+│  │  │  4. Returns output to logs          │           │ │
 │  │  └──────────────────────────────────────┘           │ │
 │  │                                                        │ │
 │  │  Resources: 4GB RAM, 2 vCPU, 1hr timeout             │ │

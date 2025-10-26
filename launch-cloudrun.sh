@@ -23,9 +23,11 @@ Launch a Google Cloud Run job to execute Claude Code with opusplan model.
 
 Options:
   -p, --prompt PROMPT           The prompt to send to Claude Code (required)
+  -m, --model MODEL             Claude model to use (default: opusplan)
   -P, --project PROJECT_ID      GCP Project ID (default: \$GCP_PROJECT_ID)
   -r, --region REGION           GCP Region (default: us-central1)
   -n, --name SERVICE_NAME       Service name (default: claude-code-runner)
+  -v, --verbose                 Show verbose output (configuration, logs, resource usage)
   -h, --help                    Show this help message
 
 Environment Variables:
@@ -38,18 +40,26 @@ Environment Variables:
   CLOUDRUN_TIMEOUT              Task timeout (default: 3600s)
   CLOUDRUN_MAX_RETRIES          Max retries (default: 0)
 
-Example:
+Examples:
   ./launch-cloudrun.sh -p "Create a new feature for user authentication"
+  ./launch-cloudrun.sh -p "Review the code" --verbose
+  ./launch-cloudrun.sh -p "Quick task" -m sonnet
 EOF
 }
 
 # Parse command line arguments
 PROMPT=""
+MODEL="opusplan"
+VERBOSE=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     -p|--prompt)
       PROMPT="$2"
+      shift 2
+      ;;
+    -m|--model)
+      MODEL="$2"
       shift 2
       ;;
     -P|--project)
@@ -64,6 +74,10 @@ while [[ $# -gt 0 ]]; do
       SERVICE_NAME="$2"
       IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
       shift 2
+      ;;
+    -v|--verbose)
+      VERBOSE=true
+      shift
       ;;
     -h|--help)
       show_help
@@ -94,97 +108,136 @@ if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
   exit 1
 fi
 
-echo "=== Cloud Run Configuration ==="
-echo "Project ID: $PROJECT_ID"
-echo "Region: $REGION"
-echo "Service Name: $SERVICE_NAME"
-echo "Image: $IMAGE_NAME"
-echo "Job Name: $JOB_NAME"
-echo ""
-echo "=== Resource Configuration ==="
-echo "Memory: $MEMORY"
-echo "CPU: $CPU vCPU"
-echo "Timeout: $TIMEOUT"
-echo "Max Retries: $MAX_RETRIES"
-echo ""
+if [ "$VERBOSE" = true ]; then
+  echo "=== Cloud Run Configuration ==="
+  echo "Project ID: $PROJECT_ID"
+  echo "Region: $REGION"
+  echo "Service Name: $SERVICE_NAME"
+  echo "Image: $IMAGE_NAME"
+  echo "Job Name: $JOB_NAME"
+  echo "Model: $MODEL"
+  echo ""
+  echo "=== Resource Configuration ==="
+  echo "Memory: $MEMORY"
+  echo "CPU: $CPU vCPU"
+  echo "Timeout: $TIMEOUT"
+  echo "Max Retries: $MAX_RETRIES"
+  echo ""
+  echo "=== Launching Cloud Run Job ==="
+fi
 
-# Create and execute Cloud Run job
-echo "=== Launching Cloud Run Job ==="
-gcloud run jobs create "$JOB_NAME" \
-  --image="$IMAGE_NAME" \
-  --region="$REGION" \
-  --project="$PROJECT_ID" \
-  --set-env-vars="PROMPT=$PROMPT,CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" \
-  --set-env-vars="GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
-  --memory="$MEMORY" \
-  --cpu="$CPU" \
-  --max-retries="$MAX_RETRIES" \
-  --task-timeout="$TIMEOUT"
+# Create and execute Cloud Run job (suppress output unless verbose)
+if [ "$VERBOSE" = true ]; then
+  gcloud run jobs create "$JOB_NAME" \
+    --image="$IMAGE_NAME" \
+    --region="$REGION" \
+    --project="$PROJECT_ID" \
+    --set-env-vars="PROMPT=$PROMPT,CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN,MODEL=$MODEL" \
+    --set-env-vars="GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
+    --memory="$MEMORY" \
+    --cpu="$CPU" \
+    --max-retries="$MAX_RETRIES" \
+    --task-timeout="$TIMEOUT"
+else
+  gcloud run jobs create "$JOB_NAME" \
+    --image="$IMAGE_NAME" \
+    --region="$REGION" \
+    --project="$PROJECT_ID" \
+    --set-env-vars="PROMPT=$PROMPT,CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN,MODEL=$MODEL" \
+    --set-env-vars="GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
+    --memory="$MEMORY" \
+    --cpu="$CPU" \
+    --max-retries="$MAX_RETRIES" \
+    --task-timeout="$TIMEOUT" \
+    --quiet 2>&1 >/dev/null
+fi
 
-echo "=== Executing Job ==="
+if [ "$VERBOSE" = true ]; then
+  echo "=== Executing Job ==="
+fi
+
 gcloud run jobs execute "$JOB_NAME" \
   --region="$REGION" \
   --project="$PROJECT_ID" \
-  --wait
+  --wait \
+  $([ "$VERBOSE" != true ] && echo "--quiet 2>&1 >/dev/null")
 
-echo "=== Fetching Job Logs ==="
-gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME" \
-  --project="$PROJECT_ID" \
-  --limit=50 \
-  --format="table(timestamp,textPayload)"
-
-echo ""
-echo "=== Resource Usage Summary ==="
-
-# Get the execution name
-EXECUTION_NAME=$(gcloud run jobs executions list \
-  --job="$JOB_NAME" \
-  --region="$REGION" \
-  --project="$PROJECT_ID" \
-  --limit=1 \
-  --format="value(metadata.name)" 2>/dev/null || echo "")
-
-if [ -n "$EXECUTION_NAME" ]; then
-  # Show execution details
-  gcloud run jobs executions describe "$EXECUTION_NAME" \
-    --region="$REGION" \
+# Fetch and display logs
+if [ "$VERBOSE" = true ]; then
+  echo "=== Fetching Job Logs ==="
+  gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME" \
     --project="$PROJECT_ID" \
-    --format="table(
-      metadata.name:label='Execution',
-      status.startTime.date('%Y-%m-%d %H:%M:%S'):label='Start Time',
-      status.completionTime.date('%Y-%m-%d %H:%M:%S'):label='End Time',
-      status.succeededCount:label='Succeeded',
-      status.failedCount:label='Failed',
-      spec.template.spec.template.spec.containers[0].resources.limits.memory:label='Memory Limit',
-      spec.template.spec.template.spec.containers[0].resources.limits.cpu:label='CPU Limit'
-    )" 2>/dev/null || echo "Unable to fetch execution details"
-
-  # Try to get resource usage from logs
+    --limit=50 \
+    --format="table(timestamp,textPayload)"
   echo ""
-  echo "Checking for resource usage in logs..."
-  gcloud logging read "
-    resource.type=cloud_run_job
-    AND labels.\"run.googleapis.com/execution_name\"=\"$EXECUTION_NAME\"
-    AND (
-      textPayload=~'Memory usage'
-      OR textPayload=~'CPU usage'
-      OR severity=WARNING
-    )
-  " \
-    --project="$PROJECT_ID" \
-    --limit=10 \
-    --format="table(timestamp,severity,textPayload)" \
-    --order=asc 2>/dev/null || echo "No resource usage logs found"
+  echo "=== Resource Usage Summary ==="
 else
-  echo "Unable to fetch execution details"
+  # In quiet mode, only show the actual Claude output (no timestamps)
+  gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME" \
+    --project="$PROJECT_ID" \
+    --limit=50 \
+    --format="value(textPayload)" | grep -v "^$"
 fi
 
-echo ""
-echo "=== Cleaning Up ==="
-echo "Deleting job: $JOB_NAME"
+# Resource usage summary (only in verbose mode)
+if [ "$VERBOSE" = true ]; then
+  # Get the execution name
+  EXECUTION_NAME=$(gcloud run jobs executions list \
+    --job="$JOB_NAME" \
+    --region="$REGION" \
+    --project="$PROJECT_ID" \
+    --limit=1 \
+    --format="value(metadata.name)" 2>/dev/null || echo "")
+
+  if [ -n "$EXECUTION_NAME" ]; then
+    # Show execution details
+    gcloud run jobs executions describe "$EXECUTION_NAME" \
+      --region="$REGION" \
+      --project="$PROJECT_ID" \
+      --format="table(
+        metadata.name:label='Execution',
+        status.startTime.date('%Y-%m-%d %H:%M:%S'):label='Start Time',
+        status.completionTime.date('%Y-%m-%d %H:%M:%S'):label='End Time',
+        status.succeededCount:label='Succeeded',
+        status.failedCount:label='Failed',
+        spec.template.spec.template.spec.containers[0].resources.limits.memory:label='Memory Limit',
+        spec.template.spec.template.spec.containers[0].resources.limits.cpu:label='CPU Limit'
+      )" 2>/dev/null || echo "Unable to fetch execution details"
+
+    # Try to get resource usage from logs
+    echo ""
+    echo "Checking for resource usage in logs..."
+    gcloud logging read "
+      resource.type=cloud_run_job
+      AND labels.\"run.googleapis.com/execution_name\"=\"$EXECUTION_NAME\"
+      AND (
+        textPayload=~'Memory usage'
+        OR textPayload=~'CPU usage'
+        OR severity=WARNING
+      )
+    " \
+      --project="$PROJECT_ID" \
+      --limit=10 \
+      --format="table(timestamp,severity,textPayload)" \
+      --order=asc 2>/dev/null || echo "No resource usage logs found"
+  else
+    echo "Unable to fetch execution details"
+  fi
+
+  echo ""
+  echo "=== Cleaning Up ==="
+fi
+
+# Cleanup (always happens, but only announce in verbose mode)
+if [ "$VERBOSE" = true ]; then
+  echo "Deleting job: $JOB_NAME"
+fi
+
 gcloud run jobs delete "$JOB_NAME" \
   --region="$REGION" \
   --project="$PROJECT_ID" \
-  --quiet
+  --quiet 2>&1 >/dev/null
 
-echo "Cloud Run job completed successfully!"
+if [ "$VERBOSE" = true ]; then
+  echo "Cloud Run job completed successfully!"
+fi

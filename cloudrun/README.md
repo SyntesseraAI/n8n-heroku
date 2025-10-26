@@ -21,8 +21,7 @@ cd cloudrun
 - **setup-gcp.sh** - Automated GCP setup script (recommended)
 - **rebuild-image.sh** - Rebuild and push container image
 - **Dockerfile** - Container image definition for Cloud Run jobs
-- **startup.sh** - Startup script that runs inside the Cloud Run container
-- **opusplan.sh** - Expect script that executes Claude Code with opusplan model
+- **startup.sh** - Startup script that runs Claude Code natively with opusplan model
 - **QUICKSTART.md** - 5-minute getting started guide
 - **GCP_SETUP.md** - Comprehensive setup documentation
 - **README.md** - This file
@@ -164,10 +163,9 @@ launch-cloudrun -p "Your prompt here" -P my-project -r us-west1
 3. The container starts with `startup.sh`, which:
    - Configures Claude Code authentication
    - Sets up MCP servers (like GitHub)
-   - Executes the opusplan.sh script with your prompt
-4. The opusplan.sh script uses `expect` to interact with Claude Code CLI
-5. Output is captured and logged
-6. The job is automatically cleaned up after completion
+   - Runs Claude Code natively with your prompt (no expect wrapper needed)
+4. Output is captured and logged
+5. The job is automatically cleaned up after completion
 
 ## Features
 
