@@ -19,19 +19,18 @@ else
   echo "GCP_SERVICE_ACCOUNT_KEY not set; Cloud Run functionality will not be available."
 fi
 
-# ensure required global tooling is available on every boot
-echo "Installing @anthropic-ai/claude-code globally..."
-npm install -g @anthropic-ai/claude-code
-
-# surface auth configuration for the claude-code CLI if provided
+# Configure Claude Code CLI authentication and GitHub MCP server if tokens are provided
 if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
   export CLAUDE_CODE_OAUTH_TOKEN
   echo "CLAUDE_CODE_OAUTH_TOKEN detected; claude-code CLI authentication ready."
-  claude mcp add --transport http github https://api.githubcopilot.com/mcp -H "Authorization: Bearer $GITHUB_TOKEN"
-  # claude mcp add --transport http mermaidchart "https://mcp.mermaidchart.com/mcp"
-  # claude mcp add --transport stdio codacy -- npx -y @codacy/codacy-mcp@latest
-  # claude mcp add --transport http context7 https://mcp.context7.com/mcp
-  # claude mcp add --transport stdio shadcn -- npx shadcn@latest mcp
+
+  # Add GitHub MCP server if token is available (requires runtime secret)
+  if [ -n "${GITHUB_TOKEN:-}" ]; then
+    echo "Configuring GitHub MCP server..."
+    claude mcp add --transport http github https://api.githubcopilot.com/mcp -H "Authorization: Bearer $GITHUB_TOKEN"
+  fi
+
+  echo "Testing MCP server configuration..."
   claude -p "Hello Claude, describe your MCP servers"
 else
   echo "CLAUDE_CODE_OAUTH_TOKEN not set; claude-code CLI will require authentication."

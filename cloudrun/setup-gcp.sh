@@ -130,6 +130,11 @@ gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
   --role="roles/logging.logWriter" \
   --condition=None
 
+gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
+  --member="serviceAccount:${SERVICE_ACCOUNT_EMAIL}" \
+  --role="roles/logging.viewer" \
+  --condition=None
+
 echo -e "${GREEN}✓ IAM permissions granted${NC}"
 
 echo ""

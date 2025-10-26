@@ -65,8 +65,8 @@ gcloud auth configure-docker --quiet 2>/dev/null || true
 
 # Build the image
 echo ""
-echo -e "${YELLOW}Building Docker image...${NC}"
-docker build -t "$IMAGE_NAME" .
+echo -e "${YELLOW}Building Docker image for linux/amd64...${NC}"
+docker build --platform linux/amd64 -t "$IMAGE_NAME" .
 
 # Push to GCR
 echo ""

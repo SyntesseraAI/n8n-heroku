@@ -35,4 +35,18 @@ RUN chmod +x /home/node/packages/cli/opusplan.sh
 COPY ./launch-cloudrun.sh /home/node/packages/cli/launch-cloudrun
 RUN chmod +x /home/node/packages/cli/launch-cloudrun
 
+# Install custom Claude Code node
+COPY ./nodes /tmp/custom-nodes
+WORKDIR /tmp/custom-nodes
+RUN npm install && \
+    npm run build && \
+    mkdir -p /home/node/.n8n/custom && \
+    cp -r dist/* /home/node/.n8n/custom/ && \
+    chown -R node:node /home/node/.n8n
+
+# Install Claude Code CLI globally
+RUN npm install -g @anthropic-ai/claude-code
+
+WORKDIR /home/node/packages/cli
+
 CMD ["/entrypoint.sh"]

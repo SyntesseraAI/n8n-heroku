@@ -9,8 +9,8 @@ if {[llength $argv] > 0} {
     set prompt [read stdin]
 }
 
-# Launch Claude with the prompt
-spawn claude --allowedTools --model opusplan "mcp__github" -p "$prompt"
+# Launch Claude with the prompt and all MCP servers
+spawn claude --allowedTools --model opusplan "mcp__github" "mcp__mermaidchart" "mcp__codacy" "mcp__context7" "mcp__shadcn" -p "$prompt"
 
 # Capture and print only the output
 expect {
