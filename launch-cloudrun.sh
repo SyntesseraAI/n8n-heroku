@@ -156,11 +156,18 @@ if [ "$VERBOSE" = true ]; then
   echo "=== Executing Job ==="
 fi
 
-gcloud run jobs execute "$JOB_NAME" \
-  --region="$REGION" \
-  --project="$PROJECT_ID" \
-  --wait \
-  $([ "$VERBOSE" != true ] && echo "--quiet 2>&1 >/dev/null")
+if [ "$VERBOSE" = true ]; then
+  gcloud run jobs execute "$JOB_NAME" \
+    --region="$REGION" \
+    --project="$PROJECT_ID" \
+    --wait
+else
+  gcloud run jobs execute "$JOB_NAME" \
+    --region="$REGION" \
+    --project="$PROJECT_ID" \
+    --wait \
+    --quiet 2>&1 >/dev/null
+fi
 
 # Fetch and display logs
 if [ "$VERBOSE" = true ]; then
