@@ -35,6 +35,24 @@
     "GITHUB_TOKEN": {
       "description": "GitHub personal access token for accessing GitHub API and repositories.",
       "required": false
+    },
+    "GCP_PROJECT_ID": {
+      "description": "Google Cloud Project ID for launching Cloud Run jobs. Required if you want to use the launch-cloudrun command.",
+      "required": false
+    },
+    "GCP_REGION": {
+      "description": "Google Cloud Region for Cloud Run jobs (e.g., us-central1, us-west1, europe-west1). Defaults to us-central1 if not specified.",
+      "value": "us-central1",
+      "required": false
+    },
+    "CLOUDRUN_SERVICE_NAME": {
+      "description": "Name for the Cloud Run service/job. Defaults to 'claude-code-runner' if not specified.",
+      "value": "claude-code-runner",
+      "required": false
+    },
+    "GCP_SERVICE_ACCOUNT_KEY": {
+      "description": "Google Cloud Service Account Key in JSON format (base64 encoded). Required for authenticating with GCP to launch Cloud Run jobs. Create a service account with Cloud Run Admin and Storage Admin roles, download the JSON key, and base64 encode it.",
+      "required": false
     }
   },
   "addons": [

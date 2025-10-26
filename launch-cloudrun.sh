@@ -1,0 +1,206 @@
+#!/bin/bash
+set -e
+
+# Configuration
+PROJECT_ID="${GCP_PROJECT_ID}"
+REGION="${GCP_REGION:-us-central1}"
+SERVICE_NAME="${CLOUDRUN_SERVICE_NAME:-claude-code-runner}"
+IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+JOB_NAME="${SERVICE_NAME}-job-$(date +%s)"
+
+# Resource configuration (can be set via environment variables or configure-cloudrun-resources.sh)
+MEMORY="${CLOUDRUN_MEMORY:-4Gi}"
+CPU="${CLOUDRUN_CPU:-2}"
+TIMEOUT="${CLOUDRUN_TIMEOUT:-3600s}"
+MAX_RETRIES="${CLOUDRUN_MAX_RETRIES:-0}"
+
+# Help function
+show_help() {
+  cat << EOF
+Usage: ./launch-cloudrun.sh [OPTIONS]
+
+Launch a Google Cloud Run job to execute Claude Code with opusplan model.
+
+Options:
+  -p, --prompt PROMPT           The prompt to send to Claude Code (required)
+  -P, --project PROJECT_ID      GCP Project ID (default: \$GCP_PROJECT_ID)
+  -r, --region REGION           GCP Region (default: us-central1)
+  -n, --name SERVICE_NAME       Service name (default: claude-code-runner)
+  -b, --build                   Build and push Docker image before running
+  -h, --help                    Show this help message
+
+Environment Variables:
+  GCP_PROJECT_ID                Google Cloud Project ID
+  GCP_REGION                    Google Cloud Region
+  CLAUDE_CODE_OAUTH_TOKEN       Claude Code OAuth token (required)
+  GITHUB_TOKEN                  GitHub token for MCP server (optional)
+  CLOUDRUN_MEMORY               Memory limit (default: 4Gi)
+  CLOUDRUN_CPU                  CPU count (default: 2)
+  CLOUDRUN_TIMEOUT              Task timeout (default: 3600s)
+  CLOUDRUN_MAX_RETRIES          Max retries (default: 0)
+
+Example:
+  ./launch-cloudrun.sh -p "Create a new feature for user authentication" -b
+EOF
+}
+
+# Parse command line arguments
+BUILD_IMAGE=false
+PROMPT=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -p|--prompt)
+      PROMPT="$2"
+      shift 2
+      ;;
+    -P|--project)
+      PROJECT_ID="$2"
+      shift 2
+      ;;
+    -r|--region)
+      REGION="$2"
+      shift 2
+      ;;
+    -n|--name)
+      SERVICE_NAME="$2"
+      IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+      shift 2
+      ;;
+    -b|--build)
+      BUILD_IMAGE=true
+      shift
+      ;;
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      show_help
+      exit 1
+      ;;
+  esac
+done
+
+# Validate required parameters
+if [ -z "$PROMPT" ]; then
+  echo "Error: Prompt is required (-p or --prompt)"
+  show_help
+  exit 1
+fi
+
+if [ -z "$PROJECT_ID" ]; then
+  echo "Error: GCP_PROJECT_ID must be set either as environment variable or via -P flag"
+  exit 1
+fi
+
+if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+  echo "Error: CLAUDE_CODE_OAUTH_TOKEN environment variable is required"
+  exit 1
+fi
+
+echo "=== Cloud Run Configuration ==="
+echo "Project ID: $PROJECT_ID"
+echo "Region: $REGION"
+echo "Service Name: $SERVICE_NAME"
+echo "Image: $IMAGE_NAME"
+echo "Job Name: $JOB_NAME"
+echo ""
+echo "=== Resource Configuration ==="
+echo "Memory: $MEMORY"
+echo "CPU: $CPU vCPU"
+echo "Timeout: $TIMEOUT"
+echo "Max Retries: $MAX_RETRIES"
+echo ""
+
+# Build and push image if requested
+if [ "$BUILD_IMAGE" = true ]; then
+  echo "=== Building Docker Image ==="
+  docker build -t "$IMAGE_NAME" ./cloudrun/
+
+  echo "=== Pushing Image to GCR ==="
+  docker push "$IMAGE_NAME"
+  echo ""
+fi
+
+# Create and execute Cloud Run job
+echo "=== Launching Cloud Run Job ==="
+gcloud run jobs create "$JOB_NAME" \
+  --image="$IMAGE_NAME" \
+  --region="$REGION" \
+  --project="$PROJECT_ID" \
+  --set-env-vars="PROMPT=$PROMPT,CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" \
+  --set-env-vars="GITHUB_TOKEN=${GITHUB_TOKEN:-}" \
+  --memory="$MEMORY" \
+  --cpu="$CPU" \
+  --max-retries="$MAX_RETRIES" \
+  --task-timeout="$TIMEOUT"
+
+echo "=== Executing Job ==="
+gcloud run jobs execute "$JOB_NAME" \
+  --region="$REGION" \
+  --project="$PROJECT_ID" \
+  --wait
+
+echo "=== Fetching Job Logs ==="
+gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=$JOB_NAME" \
+  --project="$PROJECT_ID" \
+  --limit=50 \
+  --format="table(timestamp,textPayload)"
+
+echo ""
+echo "=== Resource Usage Summary ==="
+
+# Get the execution name
+EXECUTION_NAME=$(gcloud run jobs executions list \
+  --job="$JOB_NAME" \
+  --region="$REGION" \
+  --project="$PROJECT_ID" \
+  --limit=1 \
+  --format="value(metadata.name)" 2>/dev/null || echo "")
+
+if [ -n "$EXECUTION_NAME" ]; then
+  # Show execution details
+  gcloud run jobs executions describe "$EXECUTION_NAME" \
+    --region="$REGION" \
+    --project="$PROJECT_ID" \
+    --format="table(
+      metadata.name:label='Execution',
+      status.startTime.date('%Y-%m-%d %H:%M:%S'):label='Start Time',
+      status.completionTime.date('%Y-%m-%d %H:%M:%S'):label='End Time',
+      status.succeededCount:label='Succeeded',
+      status.failedCount:label='Failed',
+      spec.template.spec.template.spec.containers[0].resources.limits.memory:label='Memory Limit',
+      spec.template.spec.template.spec.containers[0].resources.limits.cpu:label='CPU Limit'
+    )" 2>/dev/null || echo "Unable to fetch execution details"
+
+  # Try to get resource usage from logs
+  echo ""
+  echo "Checking for resource usage in logs..."
+  gcloud logging read "
+    resource.type=cloud_run_job
+    AND labels.\"run.googleapis.com/execution_name\"=\"$EXECUTION_NAME\"
+    AND (
+      textPayload=~'Memory usage'
+      OR textPayload=~'CPU usage'
+      OR severity=WARNING
+    )
+  " \
+    --project="$PROJECT_ID" \
+    --limit=10 \
+    --format="table(timestamp,severity,textPayload)" \
+    --order=asc 2>/dev/null || echo "No resource usage logs found"
+else
+  echo "Unable to fetch execution details"
+fi
+
+echo ""
+echo "=== Cleaning Up ==="
+echo "Deleting job: $JOB_NAME"
+gcloud run jobs delete "$JOB_NAME" \
+  --region="$REGION" \
+  --project="$PROJECT_ID" \
+  --quiet
+
+echo "Cloud Run job completed successfully!"

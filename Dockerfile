@@ -2,7 +2,12 @@ FROM n8nio/n8n:latest
 
 USER root
 
-RUN apk add --no-cache expect
+# Install expect, docker client, and google cloud SDK
+RUN apk add --no-cache expect docker-cli python3 py3-pip curl bash && \
+    curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir=/usr/local
+
+# Add gcloud to PATH
+ENV PATH="/usr/local/google-cloud-sdk/bin:${PATH}"
 
 WORKDIR /home/node/packages/cli
 ENTRYPOINT []
@@ -25,5 +30,12 @@ RUN chmod +x /home/node/packages/cli/haiku.sh
 # Copy the opusplan expect script
 COPY ./opusplan.sh /home/node/packages/cli/opusplan.sh
 RUN chmod +x /home/node/packages/cli/opusplan.sh
+
+# Copy the Cloud Run launcher script
+COPY ./launch-cloudrun.sh /usr/local/bin/launch-cloudrun
+RUN chmod +x /usr/local/bin/launch-cloudrun
+
+# Copy the cloudrun directory for building Cloud Run images
+COPY ./cloudrun /home/node/cloudrun
 
 CMD ["/entrypoint.sh"]
