@@ -12,16 +12,10 @@ if {[llength $argv] > 0} {
 # Launch Claude with the prompt
 spawn claude --allowedTools --model sonnet "mcp__github" -p "$prompt"
 
-# Capture and print only the output, filtering ANSI escape sequences
+# Capture and print only the output
 expect {
     -re "(.+)" {
-        set output $expect_out(1,string)
-        # Remove ANSI escape sequences including cursor visibility codes
-        regsub -all "\033\\\[\\?25h" $output "" output
-        regsub -all "\033\\\[[0-9;]*m" $output "" output
-        if {[string length $output] > 0} {
-            puts $output
-        }
+        puts $expect_out(1,string)
         exp_continue
     }
     eof
