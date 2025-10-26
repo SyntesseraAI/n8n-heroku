@@ -1,4 +1,15 @@
 
-
 #Ignore vscode AI rules
 .github/instructions/codacy.instructions.md
+
+# GCP sensitive files - never commit these!
+cloudrun/gcp-key.json
+cloudrun/gcp-key-base64.txt
+gcp-key.json
+gcp-key-base64.txt
+**/gcp-key*.json
+**/gcp-key*.txt
+**/*key.json
+**/*key.txt
+
+.env*

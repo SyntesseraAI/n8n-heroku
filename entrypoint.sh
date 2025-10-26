@@ -3,6 +3,22 @@
 # check if port variable is set or go with default
 if [ -z ${PORT+x} ]; then echo "PORT variable not defined, leaving N8N to default port."; else export N8N_PORT="$PORT"; echo "N8N will start on '$PORT'"; fi
 
+# configure Google Cloud authentication if service account key is provided
+if [ -n "${GCP_SERVICE_ACCOUNT_KEY:-}" ]; then
+  echo "Configuring Google Cloud authentication..."
+  echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d > /tmp/gcp-key.json
+  gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+  if [ -n "${GCP_PROJECT_ID:-}" ]; then
+    gcloud config set project "$GCP_PROJECT_ID"
+    echo "GCP authentication configured for project: $GCP_PROJECT_ID"
+  fi
+  # Configure docker to use gcloud credentials for GCR
+  gcloud auth configure-docker --quiet
+  rm /tmp/gcp-key.json
+else
+  echo "GCP_SERVICE_ACCOUNT_KEY not set; Cloud Run functionality will not be available."
+fi
+
 # ensure required global tooling is available on every boot
 echo "Installing @anthropic-ai/claude-code globally..."
 npm install -g @anthropic-ai/claude-code
