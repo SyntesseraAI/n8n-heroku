@@ -35,13 +35,13 @@ RUN chmod +x /home/node/packages/cli/opusplan.sh
 COPY ./launch-cloudrun.sh /home/node/packages/cli/launch-cloudrun
 RUN chmod +x /home/node/packages/cli/launch-cloudrun
 
-# Install custom Claude Code node
-COPY ./nodes /tmp/custom-nodes
+# Install custom n8n nodes
+COPY ./custom-nodes /tmp/custom-nodes
 WORKDIR /tmp/custom-nodes
 RUN npm install --include=dev && \
     npm run build && \
     mkdir -p /home/node/packages/cli/.n8n/custom && \
-    cp -r /tmp/custom-nodes /home/node/packages/cli/.n8n/custom/n8n-nodes-claude-code && \
+    cp -r /tmp/custom-nodes /home/node/packages/cli/.n8n/custom/n8n-custom-nodes && \
     chown -R node:node /home/node/packages/cli/.n8n
 
 # Install Claude Code CLI globally

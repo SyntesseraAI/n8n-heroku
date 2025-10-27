@@ -1,13 +1,14 @@
 {
-  "name": "n8n-nodes-claude-code",
+  "name": "n8n-custom-nodes",
   "version": "0.1.0",
-  "description": "n8n community nodes for Claude Code integration",
+  "description": "n8n custom nodes for various integrations",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
     "claude",
     "ai",
-    "anthropic"
+    "anthropic",
+    "automation"
   ],
   "license": "MIT",
   "homepage": "",

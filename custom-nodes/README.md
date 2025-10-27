@@ -1,6 +1,6 @@
-# n8n Claude Code Custom Nodes
+# n8n Custom Nodes
 
-This directory contains custom n8n nodes for integrating Claude Code into your n8n workflows.
+This directory contains custom n8n nodes for various integrations, including Claude Code and other automation tools.
 
 ## Nodes
 
@@ -30,7 +30,7 @@ The node requires Claude Code API credentials with your OAuth token. You can obt
 ## Directory Structure
 
 ```
-nodes/
+custom-nodes/
 ├── package.json                          # Node package configuration
 ├── tsconfig.json                         # TypeScript configuration
 ├── gulpfile.js                          # Build configuration
@@ -48,7 +48,7 @@ nodes/
 ### Building the Nodes
 
 ```bash
-cd nodes
+cd custom-nodes
 npm install
 npm run build
 ```
@@ -59,14 +59,14 @@ This will compile the TypeScript files and copy assets to the `dist/` directory.
 
 To add a new node:
 
-1. Create a new directory under `nodes/nodes/`:
+1. Create a new directory under `custom-nodes/nodes/`:
    ```bash
-   mkdir -p nodes/nodes/YourNode
+   mkdir -p custom-nodes/nodes/YourNode
    ```
 
 2. Create the node implementation file:
    ```typescript
-   // nodes/nodes/YourNode/YourNode.node.ts
+   // custom-nodes/nodes/YourNode/YourNode.node.ts
    import { INodeType, INodeTypeDescription } from 'n8n-workflow';
 
    export class YourNode implements INodeType {
@@ -81,7 +81,7 @@ To add a new node:
 3. Add the node icon:
    ```bash
    # Create an SVG icon
-   nodes/nodes/YourNode/your-node.svg
+   custom-nodes/nodes/YourNode/your-node.svg
    ```
 
 4. Register the node in `package.json`:
@@ -135,7 +135,7 @@ To add a new credential type:
 
 The custom nodes are automatically installed when building the Docker image. The Dockerfile:
 
-1. Copies the `nodes/` directory
+1. Copies the `custom-nodes/` directory
 2. Installs dependencies
 3. Builds the nodes
 4. Copies them to n8n's custom nodes directory
@@ -170,14 +170,14 @@ To test the node locally without Docker:
 
 1. Build the nodes:
    ```bash
-   cd nodes
+   cd custom-nodes
    npm run build
    ```
 
 2. Link to your local n8n installation:
    ```bash
    # In your local n8n custom nodes directory
-   ln -s /path/to/this/nodes/dist /path/to/.n8n/custom/
+   ln -s /path/to/this/custom-nodes/dist /path/to/.n8n/custom/
    ```
 
 3. Restart n8n and the node should appear
