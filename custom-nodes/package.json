@@ -54,5 +54,7 @@
   "peerDependencies": {
     "n8n-workflow": "*"
   },
-  "dependencies": {}
+  "dependencies": {
+    "node-pty": "^1.0.0"
+  }
 }

@@ -7,7 +7,7 @@ import {
 	NodeOperationError,
 } from 'n8n-workflow';
 
-import { spawn } from 'child_process';
+import * as pty from 'node-pty';
 
 // Helper function to execute Claude Code
 function executeClaudeCode(
@@ -18,7 +18,6 @@ function executeClaudeCode(
 ): Promise<string> {
 	return new Promise((resolve, reject) => {
 		let output = '';
-		let errorOutput = '';
 
 		// Set up environment with OAuth token
 		const env = {
@@ -26,11 +25,13 @@ function executeClaudeCode(
 			CLAUDE_CODE_OAUTH_TOKEN: oauthToken,
 		};
 
-		// Spawn the claude process
-		const childProcess = spawn('claude', args, {
-			env,
+		// Spawn the claude process using pty (pseudoterminal) for raw mode support
+		const childProcess = pty.spawn('claude', args, {
+			name: 'xterm-color',
+			cols: 120,
+			rows: 30,
 			cwd: workingDirectory,
-			shell: true,
+			env: env,
 		});
 
 		// Set timeout
@@ -39,35 +40,24 @@ function executeClaudeCode(
 			reject(new Error(`Claude Code execution timed out after ${timeout / 1000} seconds`));
 		}, timeout);
 
-		// Capture stdout
-		childProcess.stdout.on('data', (data: Buffer) => {
-			output += data.toString();
-		});
-
-		// Capture stderr
-		childProcess.stderr.on('data', (data: Buffer) => {
-			errorOutput += data.toString();
+		// Capture output (stdout and stderr are combined in pty)
+		childProcess.onData((data: string) => {
+			output += data;
 		});
 
 		// Handle process exit
-		childProcess.on('close', (code: number | null) => {
+		childProcess.onExit(({ exitCode, signal }: { exitCode: number; signal?: number }) => {
 			clearTimeout(timeoutId);
 
-			if (code === 0) {
+			if (exitCode === 0) {
 				resolve(output);
 			} else {
 				reject(
 					new Error(
-						`Claude Code exited with code ${code}. Error: ${errorOutput || 'No error output'}`,
+						`Claude Code exited with code ${exitCode}${signal ? ` (signal: ${signal})` : ''}. Output: ${output || 'No output'}`,
 					),
 				);
 			}
-		});
-
-		// Handle errors
-		childProcess.on('error', (error: Error) => {
-			clearTimeout(timeoutId);
-			reject(new Error(`Failed to execute Claude Code: ${error.message}`));
 		});
 	});
 }
@@ -137,9 +127,31 @@ export class ClaudeCode implements INodeType {
 			{
 				displayName: 'MCP Servers',
 				name: 'mcpServers',
-				type: 'string',
-				default: 'mcp__github mcp__codacy mcp__context7 mcp__mermaidchart mcp__shadcn',
-				description: 'Space-separated list of MCP servers to enable (all installed servers by default)',
+				type: 'multiOptions',
+				options: [
+					{
+						name: 'GitHub',
+						value: 'mcp__github',
+					},
+					{
+						name: 'Codacy',
+						value: 'mcp__codacy',
+					},
+					{
+						name: 'Context7',
+						value: 'mcp__context7',
+					},
+					{
+						name: 'Mermaid Chart',
+						value: 'mcp__mermaidchart',
+					},
+					{
+						name: 'Shadcn',
+						value: 'mcp__shadcn',
+					},
+				],
+				default: ['mcp__github', 'mcp__codacy', 'mcp__context7', 'mcp__mermaidchart', 'mcp__shadcn'],
+				description: 'Select which MCP servers to enable',
 			},
 			{
 				displayName: 'Additional Options',
@@ -187,7 +199,7 @@ export class ClaudeCode implements INodeType {
 				// Get parameters
 				const model = this.getNodeParameter('model', i) as string;
 				const prompt = this.getNodeParameter('prompt', i) as string;
-				const mcpServers = this.getNodeParameter('mcpServers', i, 'mcp__github mcp__codacy mcp__context7 mcp__mermaidchart mcp__shadcn') as string;
+				const mcpServers = this.getNodeParameter('mcpServers', i, ['mcp__github', 'mcp__codacy', 'mcp__context7', 'mcp__mermaidchart', 'mcp__shadcn']) as string[];
 				const additionalOptions = this.getNodeParameter('additionalOptions', i, {}) as {
 					timeout?: number;
 					allowedTools?: boolean;
@@ -207,10 +219,9 @@ export class ClaudeCode implements INodeType {
 
 				args.push('--model', model);
 
-				// Add MCP servers (space-separated)
-				if (mcpServers) {
-					const servers = mcpServers.split(/\s+/).filter(s => s);
-					servers.forEach(server => {
+				// Add MCP servers (selected from multi-options)
+				if (mcpServers && mcpServers.length > 0) {
+					mcpServers.forEach(server => {
 						args.push(server);
 					});
 				}
