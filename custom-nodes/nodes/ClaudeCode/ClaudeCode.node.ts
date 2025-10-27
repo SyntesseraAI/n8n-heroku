@@ -3,6 +3,7 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
+	NodeConnectionTypes,
 	NodeOperationError,
 } from 'n8n-workflow';
 
@@ -75,7 +76,7 @@ export class ClaudeCode implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Claude Code',
 		name: 'claudeCode',
-		icon: 'file:claude-code.svg',
+		icon: { light: 'file:claude-code.svg', dark: 'file:claude-code.svg' },
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["model"]}}',
@@ -83,8 +84,9 @@ export class ClaudeCode implements INodeType {
 		defaults: {
 			name: 'Claude Code',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
+		usableAsTool: true,
 		credentials: [
 			{
 				name: 'claudeCodeApi',
@@ -243,7 +245,16 @@ export class ClaudeCode implements INodeType {
 					});
 					continue;
 				}
-				throw error;
+				// Adding itemIndex allows other workflows to handle this error
+				if (error instanceof Error && (error as any).context) {
+					// If the error thrown already contains the context property,
+					// only append the itemIndex
+					(error as any).context.itemIndex = i;
+					throw error;
+				}
+				throw new NodeOperationError(this.getNode(), error as Error, {
+					itemIndex: i,
+				});
 			}
 		}
 
