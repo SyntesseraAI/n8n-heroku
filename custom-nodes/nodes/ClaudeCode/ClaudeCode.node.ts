@@ -9,6 +9,19 @@ import {
 
 import * as pty from 'node-pty';
 
+// Helper function to strip ANSI escape codes and non-printable characters
+function stripAnsiCodes(text: string): string {
+	// Remove ANSI escape sequences (including color codes, cursor movement, etc.)
+	// eslint-disable-next-line no-control-regex
+	return text
+		.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '') // ANSI CSI sequences
+		.replace(/\x1b\][0-9;]*\x07/g, '') // OSC sequences
+		.replace(/\x1b\][0-9;]*\x1b\\/g, '') // OSC sequences (alternative terminator)
+		.replace(/\r\n/g, '\n') // Normalize line endings
+		.replace(/\r/g, '\n') // Convert remaining CR to LF
+		.replace(/\x1b[=>]/g, ''); // Other escape sequences
+}
+
 // Helper function to execute Claude Code
 function executeClaudeCode(
 	args: string[],
@@ -50,11 +63,12 @@ function executeClaudeCode(
 			clearTimeout(timeoutId);
 
 			if (exitCode === 0) {
-				resolve(output);
+				// Strip ANSI codes and non-printable characters from output
+				resolve(stripAnsiCodes(output));
 			} else {
 				reject(
 					new Error(
-						`Claude Code exited with code ${exitCode}${signal ? ` (signal: ${signal})` : ''}. Output: ${output || 'No output'}`,
+						`Claude Code exited with code ${exitCode}${signal ? ` (signal: ${signal})` : ''}. Output: ${stripAnsiCodes(output) || 'No output'}`,
 					),
 				);
 			}
