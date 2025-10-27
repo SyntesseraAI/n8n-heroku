@@ -1,3 +1,18 @@
+# Builder stage for custom nodes
+FROM n8nio/n8n:latest AS builder
+
+USER root
+
+# Install build dependencies for native modules
+RUN apk add --no-cache make g++ python3
+
+# Build custom n8n nodes
+COPY ./custom-nodes /tmp/custom-nodes
+WORKDIR /tmp/custom-nodes
+RUN npm install --include=dev && \
+    npm run build
+
+# Final stage
 FROM n8nio/n8n:latest
 
 USER root
@@ -35,14 +50,10 @@ RUN chmod +x /home/node/packages/cli/opusplan.sh
 COPY ./launch-cloudrun.sh /home/node/packages/cli/launch-cloudrun
 RUN chmod +x /home/node/packages/cli/launch-cloudrun
 
-# Install custom n8n nodes
-COPY ./custom-nodes /tmp/custom-nodes
-WORKDIR /tmp/custom-nodes
-RUN npm install --include=dev && \
-    npm run build && \
-    mkdir -p /home/node/packages/cli/.n8n/custom && \
-    cp -r /tmp/custom-nodes /home/node/packages/cli/.n8n/custom/n8n-custom-nodes && \
-    chown -R node:node /home/node/packages/cli/.n8n
+# Copy built custom nodes from builder stage
+RUN mkdir -p /home/node/packages/cli/.n8n/custom
+COPY --from=builder /tmp/custom-nodes /home/node/packages/cli/.n8n/custom/n8n-custom-nodes
+RUN chown -R node:node /home/node/packages/cli/.n8n
 
 # Install Claude Code CLI globally
 RUN npm install -g @anthropic-ai/claude-code
