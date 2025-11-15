@@ -55,8 +55,8 @@ RUN mkdir -p /home/node/packages/cli/.n8n/custom
 COPY --from=builder /tmp/custom-nodes /home/node/packages/cli/.n8n/custom/n8n-custom-nodes
 RUN chown -R node:node /home/node/packages/cli/.n8n
 
-# Install Claude Code CLI globally
-RUN npm install -g @anthropic-ai/claude-code
+# Install Claude Code CLI, MCP Adapters and Zod globally
+RUN npm install -g @anthropic-ai/claude-code @langchain/mcp-adapters zod
 
 WORKDIR /home/node/packages/cli
 
