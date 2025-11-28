@@ -10,7 +10,7 @@ if {[llength $argv] > 0} {
 }
 
 # Launch Claude with the prompt
-spawn claude --allowedTools --model sonnet "mcp__github" -p "$prompt"
+spawn claude --model sonnet --allowedTools "mcp__github" -p "$prompt"
 
 # Capture and print only the output
 expect {
